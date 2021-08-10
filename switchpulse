@@ -1,0 +1,30 @@
+#!/bin/bash
+#Переключалка звукового устройства по умолчанию в pulseaudio
+#переключает по кругу, подходит для двух и более устройств
+#если устройств только два, то можно воспользоваться следующим однострочником:
+#pacmd set-default-sink $(pacmd list-sinks|grep "index"|grep -v "*"|awk '{print $2}')
+#
+#v0.1 ¤ 2021@grayich
+#WTFPL
+
+#Получить список устройств в массив
+list=( $(pacmd list-sinks | egrep "index|alsa.name"|tr -d "\t"|sed 's/index: //; s/alsa.name = //; s/\*/+/; /".*"/ s/ /_/g; s/"//g') )
+
+(( ${#list[@]} < 4 )) && exit 0 #если в списке меньше 2 устройств, то ничего не делать 
+
+#Узнать номер текущего устройства
+for num in ${!list[@]}; do
+	elem=${list[num]}
+	[[ "$elem" == "+" ]] && break
+done
+
+if (( ${#list[@]} == ($num+3) )); then #если последнее в списке, то включить первое
+	pacmd set-default-sink ${list[0]}
+	notify-send "№ ${list[0]}" "${list[1]}" -i cs-sound -t 3000
+else #иначе следующее по списку
+	pacmd set-default-sink ${list[$num+3]}
+	notify-send "№ ${list[$num+3]}" "${list[$num+4]}" -i cs-sound -t 3000
+fi
+
+exit 0
+
